@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ConfirmarAtendimentoModal } from "./ConfirmarAtendimentoModal";
 
 interface AgendamentosKanbanProps {
   agendamentos: Agendamento[];
@@ -21,6 +23,22 @@ interface AgendamentosKanbanProps {
 }
 
 export function AgendamentosKanban({ agendamentos, onEdit, onDelete, onConfirmarAtendimento }: AgendamentosKanbanProps) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
+
+  const handleConfirmAtendimento = (agendamento: Agendamento) => {
+    setSelectedAgendamento(agendamento);
+    setModalOpen(true);
+  };
+
+  const handleConfirm = () => {
+    if (selectedAgendamento) {
+      onConfirmarAtendimento(selectedAgendamento);
+      setModalOpen(false);
+      setSelectedAgendamento(null);
+    }
+  };
+
   const columns = [
     {
       id: "agendado",
@@ -110,7 +128,7 @@ export function AgendamentosKanban({ agendamentos, onEdit, onDelete, onConfirmar
                           <DropdownMenuContent align="end">
                             {!agendamento.compareceu && agendamento.status && (
                               <DropdownMenuItem 
-                                onClick={() => onConfirmarAtendimento(agendamento)}
+                                onClick={() => handleConfirmAtendimento(agendamento)}
                               >
                                 <CheckCircle className="w-3 h-3 mr-2" />
                                 Confirmar Atendimento
@@ -220,6 +238,16 @@ export function AgendamentosKanban({ agendamentos, onEdit, onDelete, onConfirmar
           </div>
         );
       })}
+
+      <ConfirmarAtendimentoModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedAgendamento(null);
+        }}
+        onConfirm={handleConfirm}
+        agendamento={selectedAgendamento}
+      />
     </div>
   );
 }

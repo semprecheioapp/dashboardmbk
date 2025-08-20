@@ -1,10 +1,12 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Agendamento } from "@/hooks/useAgendamentos";
 import { CheckCircle } from "lucide-react";
+import { ConfirmarAtendimentoModal } from "./ConfirmarAtendimentoModal";
 
 interface AgendamentosTableProps {
   agendamentos: Agendamento[];
@@ -15,9 +17,20 @@ interface AgendamentosTableProps {
 }
 
 export function AgendamentosTable({ agendamentos, onEdit, onDelete, onConfirmarAtendimento, getStatusBadge }: AgendamentosTableProps) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
 
-  const handleConfirmAtendimento = async (agendamento: Agendamento) => {
-    onConfirmarAtendimento(agendamento);
+  const handleConfirmAtendimento = (agendamento: Agendamento) => {
+    setSelectedAgendamento(agendamento);
+    setModalOpen(true);
+  };
+
+  const handleConfirm = () => {
+    if (selectedAgendamento) {
+      onConfirmarAtendimento(selectedAgendamento);
+      setModalOpen(false);
+      setSelectedAgendamento(null);
+    }
   };
 
   return (
@@ -119,6 +132,16 @@ export function AgendamentosTable({ agendamentos, onEdit, onDelete, onConfirmarA
           </Table>
         </div>
       </CardContent>
+      
+      <ConfirmarAtendimentoModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedAgendamento(null);
+        }}
+        onConfirm={handleConfirm}
+        agendamento={selectedAgendamento}
+      />
     </Card>
   );
 }
