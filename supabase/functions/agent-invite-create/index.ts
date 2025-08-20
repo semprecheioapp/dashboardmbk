@@ -147,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send invitation email using Brevo API
     const brevoApiKey = Deno.env.get('BREVO_API_KEY') ?? '';
     const fromEmail = Deno.env.get('INVITE_FROM_EMAIL') ?? 'no-reply@yourdomain.com';
-    const acceptUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/accept-invite?token=${token}`;
+    const acceptUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/accept-invite?token=${hashHex}`;
 
     console.log('Email send attempt:', {
       brevoApiKey: brevoApiKey ? 'PRESENT' : 'MISSING',

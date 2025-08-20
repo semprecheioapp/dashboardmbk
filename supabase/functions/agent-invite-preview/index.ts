@@ -30,6 +30,7 @@ serve(async (req) => {
     }
 
     console.log('Validating token:', token)
+    console.log('Searching for invite with token_hash:', token)
 
     // Buscar o convite pelo token_hash (campo correto)
     const { data: invite, error } = await supabaseClient

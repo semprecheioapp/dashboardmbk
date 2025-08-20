@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, CheckCircle2, AlertCircle } from "lucide-react";
+import { UserPlus, CheckCircle2, AlertCircle, Key } from "lucide-react";
 import { useCompanyRoles, AVAILABLE_PERMISSIONS } from "@/hooks/useCompanyRoles";
 import { useAgentManagement, CreateInviteData } from "@/hooks/useAgentManagement";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface InviteAgentModalProps {
   children?: React.ReactNode;
@@ -25,11 +27,14 @@ export const InviteAgentModal = ({ children, canInvite, usedSlots, totalSlots }:
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [customScopes, setCustomScopes] = useState<string[]>([]);
   const [useCustomScopes, setUseCustomScopes] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [useNewInviteFlow, setUseNewInviteFlow] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { data: roles = [] } = useCompanyRoles();
   const { createInvite, isCreatingInvite } = useAgentManagement();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email.trim()) return;
@@ -43,23 +48,68 @@ export const InviteAgentModal = ({ children, canInvite, usedSlots, totalSlots }:
       scopes = role?.permissions || [];
     }
 
-    const inviteData: CreateInviteData = {
-      email: email.trim(),
-      name: name.trim() || undefined,
-      role_id: useCustomScopes ? undefined : selectedRole || undefined,
-      scopes,
-    };
+    setIsCreating(true);
 
-    createInvite(inviteData, {
-      onSuccess: () => {
-        setOpen(false);
-        setEmail("");
-        setName("");
-        setSelectedRole("");
-        setCustomScopes([]);
-        setUseCustomScopes(false);
+    try {
+      if (useNewInviteFlow) {
+        // Usar novo fluxo com senha pré-definida
+        const { data, error } = await supabase.functions.invoke('agent-invite-create-with-password', {
+          body: {
+            email: email.trim(),
+            name: name.trim() || undefined,
+            role_id: useCustomScopes ? undefined : selectedRole || undefined,
+            scopes,
+            temporary_password: temporaryPassword || undefined
+          }
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Agente adicionado com sucesso!",
+          description: `O usuário ${email} foi criado e adicionado à empresa. As credenciais foram enviadas por email.`,
+        });
+      } else {
+        // Usar fluxo antigo com convite
+        const inviteData: CreateInviteData = {
+          email: email.trim(),
+          name: name.trim() || undefined,
+          role_id: useCustomScopes ? undefined : selectedRole || undefined,
+          scopes,
+        };
+
+        createInvite(inviteData, {
+          onSuccess: () => {
+            setOpen(false);
+            setEmail("");
+            setName("");
+            setSelectedRole("");
+            setCustomScopes([]);
+            setUseCustomScopes(false);
+            setTemporaryPassword("");
+          }
+        });
+        return;
       }
-    });
+
+      // Reset form and close
+      setOpen(false);
+      setEmail("");
+      setName("");
+      setSelectedRole("");
+      setCustomScopes([]);
+      setUseCustomScopes(false);
+      setTemporaryPassword("");
+
+    } catch (error: any) {
+      toast({
+        title: "Erro ao adicionar agente",
+        description: error.message || "Ocorreu um erro inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const toggleScope = (scope: string) => {
@@ -142,6 +192,40 @@ export const InviteAgentModal = ({ children, canInvite, usedSlots, totalSlots }:
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Checkbox
+                id="new-invite-flow"
+                checked={useNewInviteFlow}
+                onCheckedChange={(checked) => setUseNewInviteFlow(checked === true)}
+                disabled={!canInvite}
+              />
+              <Label htmlFor="new-invite-flow" className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Criar usuário diretamente (sem convite)
+              </Label>
+            </div>
+
+            {useNewInviteFlow && (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                <div className="space-y-2">
+                  <Label htmlFor="temporary-password">Senha temporária (opcional)</Label>
+                  <Input
+                    id="temporary-password"
+                    type="password"
+                    value={temporaryPassword}
+                    onChange={(e) => setTemporaryPassword(e.target.value)}
+                    placeholder="Deixe vazio para gerar automaticamente"
+                    disabled={!canInvite}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    O agente receberá esta senha por email e deverá trocá-la no primeiro acesso.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
                 id="custom-scopes"
                 checked={useCustomScopes}
                 onCheckedChange={(checked) => setUseCustomScopes(checked === true)}
@@ -216,15 +300,15 @@ export const InviteAgentModal = ({ children, canInvite, usedSlots, totalSlots }:
             </Button>
             <Button 
               type="submit" 
-              disabled={!canInvite || !email.trim() || getSelectedPermissions().length === 0 || isCreatingInvite}
+              disabled={!canInvite || !email.trim() || getSelectedPermissions().length === 0 || isCreating || isCreatingInvite}
               className="gap-2"
             >
-              {isCreatingInvite ? (
-                <>Enviando...</>
+              {isCreating || isCreatingInvite ? (
+                <>Processando...</>
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  Enviar Convite
+                  {useNewInviteFlow ? 'Adicionar Agente' : 'Enviar Convite'}
                 </>
               )}
             </Button>

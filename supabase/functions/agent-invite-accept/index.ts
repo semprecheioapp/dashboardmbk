@@ -33,6 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('Processing token:', token)
+    console.log('Accepting invite with token_hash:', token)
 
     // Buscar o convite pelo token_hash (campo correto)
     const { data: invite, error: inviteError } = await supabase
