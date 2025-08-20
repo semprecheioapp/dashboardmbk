@@ -244,8 +244,19 @@ export function ConversationList({ selectedChat, onSelectChat, filters, collapse
       console.log('Conversas resolvidas carregadas:', data);
       return data || [];
     },
-    refetchInterval: 1000 // Atualizar a cada 1 segundo
+    refetchInterval: 1000, // Atualizar a cada 1 segundo
+    staleTime: 0, // Sempre considerar stale para refetch imediato
+    cacheTime: 5 * 60 * 1000 // Manter em cache por 5 minutos
   });
+
+  // Forçar refetch quando houver mudanças nas conversas resolvidas
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      refetchResolved();
+    }, 2000); // Refetch a cada 2 segundos para garantir atualização
+
+    return () => clearInterval(interval);
+  }, [refetchResolved]);
 
   const filteredLeads = leads?.filter(lead => {
     // Buscar dados do lead para verificar tags

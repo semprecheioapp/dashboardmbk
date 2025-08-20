@@ -67,8 +67,11 @@ export function useResolveConversation() {
         description: "Conversa movida para aba 'Atendidos' e pesquisa de satisfação enviada.",
       });
       
-      // Invalidar cache para atualizar lista de conversas
+      // Forçar refetch imediato das conversas resolvidas
       queryClient.invalidateQueries({ queryKey: ["resolved_conversations"] });
+      queryClient.refetchQueries({ queryKey: ["resolved_conversations"] });
+      
+      // Atualizar outras queries relacionadas
       queryClient.invalidateQueries({ queryKey: ["whatsapp_leads"] });
       queryClient.invalidateQueries({ queryKey: ["all_leads_for_tags"] });
     },
