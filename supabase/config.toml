@@ -62,6 +62,9 @@ verify_jwt = false
 [functions.delete-lead-with-conversations]
 verify_jwt = false
 
+[functions.agent-invite-create-with-password]
+verify_jwt = false
+
 [auth]
 enabled = true
 port = 54324
