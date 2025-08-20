@@ -235,14 +235,16 @@ export function ConversationList({ selectedChat, onSelectChat, filters, collapse
   });
 
   // Buscar conversas resolvidas
-  const { data: resolvedConversations } = useQuery({
+  const { data: resolvedConversations, refetch: refetchResolved } = useQuery({
     queryKey: ["resolved_conversations"],
     queryFn: async () => {
       const { data } = await supabase
         .from('conversas_resolvidas')
         .select('session_id');
+      console.log('Conversas resolvidas carregadas:', data);
       return data || [];
-    }
+    },
+    refetchInterval: 1000 // Atualizar a cada 1 segundo
   });
 
   const filteredLeads = leads?.filter(lead => {

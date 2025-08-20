@@ -16,6 +16,12 @@ export function useResolveConversation() {
     mutationFn: async (data: ResolveConversationData) => {
       // 1. Adicionar à tabela de conversas resolvidas para mover para aba "Atendidos"
       try {
+        console.log('Inserindo conversa resolvida:', {
+          session_id: data.numero,
+          empresa_id: data.empresa_id,
+          chatId: data.chatId
+        });
+        
         const { error: insertError } = await supabase
           .from('conversas_resolvidas')
           .insert({
@@ -26,6 +32,8 @@ export function useResolveConversation() {
 
         if (insertError && insertError.code !== '23505') { // Ignorar duplicados
           console.error('Erro ao inserir conversa resolvida:', insertError);
+        } else if (!insertError) {
+          console.log('Conversa resolvida inserida com sucesso:', data.numero);
         }
       } catch (error) {
         console.error('Erro ao processar conversa resolvida:', error);
@@ -62,6 +70,7 @@ export function useResolveConversation() {
       // Invalidar cache para atualizar lista de conversas
       queryClient.invalidateQueries({ queryKey: ["resolved_conversations"] });
       queryClient.invalidateQueries({ queryKey: ["whatsapp_leads"] });
+      queryClient.invalidateQueries({ queryKey: ["all_leads_for_tags"] });
     },
     onError: (error) => {
       toast({
