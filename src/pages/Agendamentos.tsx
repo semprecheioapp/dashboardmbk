@@ -186,9 +186,7 @@ export default function Agendamentos() {
   };
 
   const handleConfirmarAtendimento = (agendamento: Agendamento) => {
-    if (confirm(`Confirma que ${agendamento.name || 'o cliente'} compareceu ao agendamento? Isso enviará pesquisa NPS.`)) {
-      confirmarAtendimento.mutate(agendamento);
-    }
+    confirmarAtendimento.mutate(agendamento);
   };
 
   const getStatusBadge = (status: boolean | null, compareceu: boolean | null) => {
