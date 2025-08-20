@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -10,6 +10,8 @@ interface ResolveConversationData {
 }
 
 export function useResolveConversation() {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async (data: ResolveConversationData) => {
       // 1. Adicionar à tabela de conversas resolvidas para mover para aba "Atendidos"
@@ -58,9 +60,8 @@ export function useResolveConversation() {
       });
       
       // Invalidar cache para atualizar lista de conversas
-      if (window.location.pathname.includes('/whatsapp')) {
-        window.location.reload();
-      }
+      queryClient.invalidateQueries({ queryKey: ["resolved_conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp_leads"] });
     },
     onError: (error) => {
       toast({
