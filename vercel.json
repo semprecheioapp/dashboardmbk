@@ -4,10 +4,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "supabase/functions/agent-invite-create-with-password/index.ts": {
-      "runtime": "edge"
-    }
-  }
+  ]
 }

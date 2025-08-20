@@ -64,6 +64,7 @@ verify_jwt = false
 
 [functions.agent-invite-create-with-password]
 verify_jwt = false
+import_map = "./supabase/functions/import_map.json"
 
 [auth]
 enabled = true
