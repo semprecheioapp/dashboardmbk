@@ -232,12 +232,7 @@ export function ChatPanel({ chatId, onToggleInfoPanel, infoPanelCollapsed, onBac
           <div className="flex items-center gap-1">
             {!isMobile && (
               <>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Phone className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Video className="h-4 w-4" />
-                </Button>
+                {/* Ícones de ligação removidos conforme solicitado */}
               </>
             )}
             <Button 

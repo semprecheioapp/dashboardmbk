@@ -129,7 +129,23 @@ function ConversationItem({ lead, isSelected, onSelect, collapsed }: Conversatio
               <h4 className="font-medium text-sm text-foreground truncate">
                 {lead.name}
               </h4>
-              {isLeadFavorite && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-4 w-4 p-0 hover:bg-transparent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const { toggleFavorite } = useFavoritesStore.getState();
+                  toggleFavorite(lead.telefone);
+                }}
+              >
+                <Star 
+                  className={cn(
+                    "h-3 w-3 transition-colors",
+                    isLeadFavorite && "text-yellow-500 fill-yellow-500"
+                  )} 
+                />
+              </Button>
               {getStatusIcon(status)}
             </div>
             <div className="flex items-center gap-1">

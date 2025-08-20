@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResolveConversationData {
   chatId: string;
@@ -11,7 +12,24 @@ interface ResolveConversationData {
 export function useResolveConversation() {
   return useMutation({
     mutationFn: async (data: ResolveConversationData) => {
-      // Simplificar: apenas enviar webhook direto
+      // 1. Adicionar à tabela de conversas resolvidas para mover para aba "Atendidos"
+      try {
+        const { error: insertError } = await supabase
+          .from('conversas_resolvidas')
+          .insert({
+            session_id: data.numero,
+            empresa_id: data.empresa_id,
+            resolvido_em: new Date().toISOString()
+          });
+
+        if (insertError && insertError.code !== '23505') { // Ignorar duplicados
+          console.error('Erro ao inserir conversa resolvida:', insertError);
+        }
+      } catch (error) {
+        console.error('Erro ao processar conversa resolvida:', error);
+      }
+
+      // 2. Enviar webhook para pesquisa de satisfação
       const webhookData = {
         empresa_id: data.empresa_id,
         nome: data.nome,
@@ -36,8 +54,13 @@ export function useResolveConversation() {
     onSuccess: () => {
       toast({
         title: "Conversa resolvida!",
-        description: "Pesquisa de satisfação enviada para o cliente.",
+        description: "Conversa movida para aba 'Atendidos' e pesquisa de satisfação enviada.",
       });
+      
+      // Invalidar cache para atualizar lista de conversas
+      if (window.location.pathname.includes('/whatsapp')) {
+        window.location.reload();
+      }
     },
     onError: (error) => {
       toast({
