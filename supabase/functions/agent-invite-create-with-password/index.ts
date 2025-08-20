@@ -20,9 +20,34 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Validate all environment variables
+    const requiredEnvVars = {
+      SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
+      SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY'),
+      SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+      BREVO_API_KEY: Deno.env.get('BREVO_API_KEY'),
+      INVITE_FROM_EMAIL: Deno.env.get('INVITE_FROM_EMAIL') || 'no-reply@yourdomain.com',
+      SITE_URL: Deno.env.get('SITE_URL') || 'http://localhost:5173'
+    };
+
+    const missingVars = Object.entries(requiredEnvVars)
+      .filter(([_, value]) => !value)
+      .map(([key, _]) => key);
+
+    if (missingVars.length > 0) {
+      console.error('Missing environment variables:', missingVars);
+      return new Response(
+        JSON.stringify({ error: `Missing environment variables: ${missingVars.join(', ')}` }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      requiredEnvVars.SUPABASE_URL!,
+      requiredEnvVars.SUPABASE_ANON_KEY!,
       {
         auth: {
           persistSession: false,
@@ -38,8 +63,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Get user from auth
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.error('Auth error:', authError);
       throw new Error('Usuário não autenticado');
     }
+    
+    console.log('Authenticated user:', user.id);
 
     // Get user profile to find company
     const { data: profile } = await supabase
@@ -56,16 +84,29 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, name, role_id, scopes, temporary_password } = body;
 
     // Validate input
-    if (!email || !scopes) {
-      throw new Error('Email e permissões são obrigatórios');
+    if (!email || !scopes || scopes.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Email e pelo menos uma permissão são obrigatórios' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Check company agent limit
-    const { data: limitCheck } = await supabase.rpc('check_company_agent_limit', {
+    const { data: limitCheck, error: limitError } = await supabase.rpc('check_company_agent_limit', {
       company_uuid: profile.empresa_id
     });
 
-    if (!limitCheck) {
+    console.log('Limit check result:', { limitCheck, limitError });
+
+    if (limitError) {
+      console.error('Error checking company limit:', limitError);
+      throw new Error('Erro ao verificar limite de agentes');
+    }
+
+    if (limitCheck === false || limitCheck === null || limitCheck === 0) {
       throw new Error('Limite de agentes atingido para esta empresa');
     }
 
@@ -83,9 +124,15 @@ const handler = async (req: Request): Promise<Response> => {
       newUserId = existingUser.id;
     } else {
       // Create new user with Supabase Auth
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!serviceRoleKey) {
+        console.error('Missing SUPABASE_SERVICE_ROLE_KEY');
+        throw new Error('Erro de configuração do servidor');
+      }
+      
       const adminSupabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        supabaseUrl,
+        serviceRoleKey
       );
 
       const password = temporary_password || crypto.randomUUID().substring(0, 12);
@@ -158,6 +205,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Get company info
+    console.log('Getting company info for:', profile.empresa_id, 'type:', typeof profile.empresa_id);
+    
     const { data: company } = await supabase
       .from('empresas')
       .select('name_empresa')
@@ -268,9 +317,14 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error('Error in agent-invite-create-with-password:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack || 'No stack trace available'
+      }),
       { 
-        status: 400,
+        status: error.message.includes('Limite') ? 409 : 
+               error.message.includes('autenticado') ? 401 : 
+               error.message.includes('configuração') ? 500 : 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

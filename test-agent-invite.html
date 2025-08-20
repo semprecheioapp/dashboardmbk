@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Função Agent Invite</title>
+</head>
+<body>
+    <h1>Teste Função agent-invite-create-with-password</h1>
+    
+    <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+        <h2>Teste Manual</h2>
+        <form id="testForm">
+            <div>
+                <label>Email:</label>
+                <input type="email" id="email" value="teste@exemplo.com" required>
+            </div>
+            <div>
+                <label>Nome:</label>
+                <input type="text" id="name" value="Teste Agente">
+            </div>
+            <div>
+                <label>Permissões (JSON):</label>
+                <textarea id="scopes">["leads.read", "leads.write"]</textarea>
+            </div>
+            <div>
+                <label>Senha temporária:</label>
+                <input type="text" id="tempPassword" value="Teste123!">
+            </div>
+            <button type="submit">Testar Criação</button>
+        </form>
+        
+        <div id="result" style="margin-top: 20px; padding: 10px; border: 1px solid #eee;">
+            <h3>Resultado:</h3>
+            <pre id="resultText">Aguardando...</pre>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        // Configuração do Supabase - substitua com suas credenciais
+        const supabaseUrl = 'https://mycjqmnvyphnarjoriux.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15Y2pxbW52eXBobmFyam9yaXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5ODI3NDAsImV4cCI6MjA1MTU1ODc0MH0.dcZdBntJdpqJx4hQFzYh2wH8V2zX5z4Q7d3K2m1n8p9q';
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const resultText = document.getElementById('resultText');
+            resultText.textContent = 'Processando...';
+            
+            try {
+                // Primeiro, fazer login (substitua com credenciais válidas)
+                const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
+                    email: 'admin@exemplo.com',
+                    password: 'senha123'
+                });
+                
+                if (authError) {
+                    throw new Error('Erro de autenticação: ' + authError.message);
+                }
+                
+                // Testar a função
+                const { data, error } = await supabase.functions.invoke('agent-invite-create-with-password', {
+                    body: {
+                        email: document.getElementById('email').value,
+                        name: document.getElementById('name').value,
+                        scopes: JSON.parse(document.getElementById('scopes').value),
+                        temporary_password: document.getElementById('tempPassword').value
+                    }
+                });
+                
+                if (error) {
+                    resultText.textContent = 'Erro: ' + JSON.stringify(error, null, 2);
+                    resultText.style.color = 'red';
+                } else {
+                    resultText.textContent = 'Sucesso: ' + JSON.stringify(data, null, 2);
+                    resultText.style.color = 'green';
+                }
+                
+            } catch (error) {
+                resultText.textContent = 'Erro: ' + error.message;
+                resultText.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+</html>
