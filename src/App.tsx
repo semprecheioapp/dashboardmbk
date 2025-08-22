@@ -20,6 +20,7 @@ import Logs from "@/pages/Logs";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import AcceptInvite from "@/pages/AcceptInvite";
 import AcceptInviteAfterRegister from "@/pages/AcceptInviteAfterRegister";
+import EmailConfirmationPage from "@/pages/EmailConfirmationPage";
 import NotFound from "@/pages/NotFound";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SuperAdminRoute } from "@/components/SuperAdminRoute";
@@ -58,6 +59,7 @@ const App: React.FC = () => {
                 <Route path="/accept-invite" element={<AcceptInvite />} />
                 <Route path="/logs" element={<ProtectedRoute><SuperAdminRoute><Logs /></SuperAdminRoute></ProtectedRoute>} />
                 <Route path="/accept-invite-after-register" element={<AcceptInviteAfterRegister />} />
+                <Route path="/auth/confirm" element={<EmailConfirmationPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

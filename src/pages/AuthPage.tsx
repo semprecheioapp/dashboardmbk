@@ -96,7 +96,7 @@ const AuthPage = () => {
 
       const redirectUrl = inviteToken 
         ? `${window.location.origin}/accept-invite-after-register?token=${inviteToken}`
-        : `${window.location.origin}/`;
+        : `${window.location.origin}/auth/confirm`;
       
       const { data, error } = await supabase.auth.signUp({
         email: email,
@@ -110,8 +110,8 @@ const AuthPage = () => {
               empresa_phone: companyPhone
             })
           },
-          // Desabilitar confirmação de email para convites
-          ...(isInviteFlow ? { email_confirm: true } : {})
+          // Configurar confirmação de email - sempre ativado para segurança
+          email_confirm: false
         }
       });
 
