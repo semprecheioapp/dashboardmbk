@@ -15,15 +15,16 @@ export default function EmailConfirmationPage() {
       const token_hash = searchParams.get('token_hash');
       const type = searchParams.get('type');
 
-      if (!token_hash || type !== 'signup') {
+      if (!token_hash || (type !== 'signup' && type !== 'email')) {
         setStatus('error');
         return;
       }
 
       try {
+        console.log('Confirming email with:', { token_hash, type });
         const { error } = await supabase.auth.verifyOtp({
           token_hash,
-          type: 'signup'
+          type: type === 'email' ? 'email' : 'signup'
         });
 
         if (error) {
