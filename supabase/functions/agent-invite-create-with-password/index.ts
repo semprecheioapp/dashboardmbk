@@ -131,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       const adminSupabase = createClient(
-        supabaseUrl,
+        requiredEnvVars.SUPABASE_URL!,
         serviceRoleKey
       );
 
