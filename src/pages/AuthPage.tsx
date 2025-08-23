@@ -111,7 +111,7 @@ const AuthPage = () => {
             })
           },
           // Configurar confirmação de email - sempre ativado para segurança
-          email_confirm: false
+          email_confirm: true
         }
       });
 
