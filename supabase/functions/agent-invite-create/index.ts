@@ -3,9 +3,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.54.0";
 // Using Brevo API via HTTPS — no Resend import
 
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const allowedOrigins = [
+  'https://dashboardmbk.com.br',
+  'https://www.dashboardmbk.com.br',
+  'http://localhost:8080',
+  'http://localhost:5173'
+];
+
+const getCorsHeaders = (origin: string | null) => {
+  const isAllowed = origin && allowedOrigins.includes(origin);
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : 'https://dashboardmbk.com.br',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400'
+  };
 };
 
 interface InviteRequest {
@@ -16,6 +29,9 @@ interface InviteRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

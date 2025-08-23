@@ -21,9 +21,6 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-ip_version = "ipv6"
-port = 54323
-tenant_id = "realtime-dev"
 
 [studio]
 enabled = true
@@ -34,7 +31,6 @@ openai_api_key = "env(OPENAI_API_KEY)"
 [inbucket]
 enabled = true
 port = 54324
-open_browser = true
 smtp_port = 54325
 pop3_port = 54326
 
@@ -68,10 +64,7 @@ import_map = "./supabase/functions/import_map.json"
 
 [auth]
 enabled = true
-port = 54324
 site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
-refresh_token_rotation_enabled = true
-security_update_password_require_reauthentication = true
 enable_manual_linking = false
