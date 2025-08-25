@@ -42,29 +42,32 @@ export const useSendWhatsAppMessage = () => {
         throw new Error(`Erro ao enviar mensagem: ${response.status}`);
       }
 
-      // Salvar a mensagem na memoria_ai como mensagem da empresa (mesmo lado da IA)
-      const { error: dbError } = await supabase
-        .from('memoria_ai')
-        .insert({
-          session_id: telefone,
-          empresa_id: empresaData.id,
-          message: {
-            type: "ai",
-            content: mensagem,
-            isFromAI: true,
-            tool_calls: [],
-            additional_kwargs: {},
-            response_metadata: {
-              sender_name: remetente || nome,
-              is_manual: true
-            },
-            invalid_tool_calls: []
-          }
-        });
+      // Tentar salvar a mensagem no banco (opcional)
+      try {
+        const { error: dbError } = await supabase
+          .from('memoria_ai')
+          .insert({
+            session_id: telefone,
+            empresa_id: empresaData.id,
+            message: {
+              type: "ai",
+              content: mensagem,
+              isFromAI: true,
+              tool_calls: [],
+              additional_kwargs: {},
+              response_metadata: {
+                sender_name: remetente || nome,
+                is_manual: true
+              },
+              invalid_tool_calls: []
+            }
+          });
 
-      if (dbError) {
-        console.error('Erro ao salvar mensagem no banco:', dbError);
-        // Não vamos falhar a operação por isso, só logar o erro
+        if (dbError) {
+          console.warn('⚠️ Erro ao salvar no banco (não crítico):', dbError.message);
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Erro de banco ignorado:', dbError.message);
       }
 
       return response.json();
