@@ -1,7 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 
 interface SendMessagePayload {
   empresa_id: number;
@@ -12,24 +9,20 @@ interface SendMessagePayload {
 }
 
 export const useSendWhatsAppMessage = () => {
-  const { empresaData } = useAuth();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async ({ nome, telefone, mensagem, remetente }: Omit<SendMessagePayload, 'empresa_id'>) => {
-      if (!empresaData?.id) {
-        throw new Error("Empresa ID não encontrado");
-      }
+    mutationFn: async ({ nome, telefone, mensagem, remetente, empresa_id }: SendMessagePayload) => {
+      console.log('🔍 Debug - Payload:', { nome, telefone, mensagem, remetente, empresa_id });
 
-      const payload: SendMessagePayload = {
-        empresa_id: empresaData.id,
+      const payload = {
+        empresa_id,
         nome,
         telefone,
         mensagem,
         remetente: remetente || nome
       };
 
-      // Enviar para o webhook
+      console.log('🚀 Enviando:', JSON.stringify(payload, null, 2));
+
       const response = await fetch('https://wb.semprecheioapp.com.br/webhook/chat_whats_mbk', {
         method: 'POST',
         headers: {
@@ -38,54 +31,21 @@ export const useSendWhatsAppMessage = () => {
         body: JSON.stringify(payload)
       });
 
+      console.log('📊 Resposta:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (!response.ok) {
-        throw new Error(`Erro ao enviar mensagem: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Erro webhook:', errorText);
+        throw new Error(`Erro ${response.status}: ${errorText}`);
       }
 
-      // Tentar salvar a mensagem no banco (opcional)
-      try {
-        const { error: dbError } = await supabase
-          .from('memoria_ai')
-          .insert({
-            session_id: telefone,
-            empresa_id: empresaData.id,
-            message: {
-              type: "ai",
-              content: mensagem,
-              isFromAI: true,
-              tool_calls: [],
-              additional_kwargs: {},
-              response_metadata: {
-                sender_name: remetente || nome,
-                is_manual: true
-              },
-              invalid_tool_calls: []
-            }
-          });
-
-        if (dbError) {
-          console.warn('⚠️ Erro ao salvar no banco (não crítico):', dbError.message);
-        }
-      } catch (dbError) {
-        console.warn('⚠️ Erro de banco ignorado:', dbError.message);
-      }
-
-      return response.json();
-    },
-    onSuccess: (data, variables) => {
-      // Invalidar cache para atualizar a conversa
-      queryClient.invalidateQueries({ 
-        queryKey: ["lead_conversations", variables.telefone, empresaData.id]
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ["whatsapp_leads", empresaData.id]
-      });
-      
-      toast.success("Mensagem enviada com sucesso!");
-    },
-    onError: (error) => {
-      console.error('Erro ao enviar mensagem:', error);
-      toast.error("Erro ao enviar mensagem. Tente novamente.");
+      const data = await response.json();
+      console.log('✅ Sucesso:', data);
+      return data;
     }
   });
 };
